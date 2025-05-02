@@ -4,8 +4,9 @@ pipeline {
     environment {
         APP_NAME = "register-app-pipeline"
         IMAGE_REPO = "wanted14/${APP_NAME}"
+        IMAGE_TAG = "latest"
     }
-    
+
     stages {
         stage("Cleanup Workspace") {
             steps {
@@ -44,8 +45,8 @@ pipeline {
                         git add k8s/deployment.yaml
                         git commit -m "Updated deployment to ${IMAGE_REPO}:${IMAGE_TAG}" || echo "No changes"
                     '''
-                    withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
-                        sh "git push https://github.com/wnteed/gitops-registration-app main"
+                    withCredentials([usernamePassword(credentialsId: 'github-token', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh 'git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/wnteed/gitops-registration-app main'
                     }
                 }
             }
