@@ -45,8 +45,8 @@ pipeline {
                         git commit -m "Updated deployment to ${IMAGE_REPO}:${IMAGE_TAG}" || echo "No changes"
                     '''
                     withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
-                    sh "git push https://github.com/wnteed/gitops-registration-app main"
-
+                        sh "git push https://github.com/wnteed/gitops-registration-app main"
+                    }
                 }
             }
         }
