@@ -43,8 +43,10 @@ pipeline {
                         git config --global user.email "rayane.matloub2@gmail.com"
                         git add k8s/deployment.yaml
                         git commit -m "Updated deployment to ${IMAGE_REPO}:${IMAGE_TAG}" || echo "No changes"
-                        git push origin main
                     '''
+                    withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
+                    sh "git push https://github.com/wnteed/gitops-registration-app main"
+
                 }
             }
         }
