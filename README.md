@@ -1,0 +1,1 @@
+# gitops-registration-app
