@@ -21,9 +21,9 @@ pipeline {
         stage("Update the Deployment Tags") {
             steps {
                 sh """
-                    cat deployment.yaml
+                    cat k8s/deployment.yaml
                     sed -i 's/${APP_NAME}.*/${APP_NAME}:${params.IMAGE_TAG}/g' deployment.yaml
-                    cat deployment.yaml
+                    cat k8s/deployment.yaml
                 """
             }
         }
