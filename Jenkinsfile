@@ -6,7 +6,7 @@ pipeline {
     environment {
         APP_NAME = "register-app-pipeline"
         IMAGE_REPO = "wanted14/${APP_NAME}"
-        GIT_REPO_URL = "https://github.com/wnteed/gitops-registration-app"
+        GIT_REPO_URL = "git@github.com:wnteed/gitops-registration-app.git"  // Use SSH URL
     }
     stages {
         stage("Cleanup Workspace") {
@@ -49,13 +49,9 @@ pipeline {
                         sh 'git add k8s/deployment.yaml'
                         sh "git commit -m 'Updated deployment to ${IMAGE_REPO}:${params.IMAGE_TAG}'"
                         
-                        // Push using credentials
-                        withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                            // Use HTTP basic auth with credentials in the URL
-                            sh """
-                                git remote set-url origin https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/wnteed/gitops-registration-app.git
-                                git push origin main
-                            """
+                        // Push using SSH authentication
+                        sshagent(['github-token']) {
+                            sh "git push origin main"
                         }
                         echo "Successfully pushed changes to GitOps repository"
                     } else {
