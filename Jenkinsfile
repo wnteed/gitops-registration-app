@@ -1,9 +1,11 @@
 pipeline {
     agent { label 'Jenkins-Agent' }
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag to deploy')
+    }
     environment {
         APP_NAME = "register-app-pipeline"
         IMAGE_REPO = "wanted14/${APP_NAME}"
-        IMAGE_TAG = params.IMAGE_TAG ?: "latest"
         GIT_REPO_URL = "https://github.com/wnteed/gitops-registration-app"
     }
     stages {
@@ -14,19 +16,19 @@ pipeline {
         }
         stage("Checkout Repository") {
             steps {
-                git branch: 'main', credentialsId: 'github-token', url: '${GIT_REPO_URL}'
+                git branch: 'main', credentialsId: 'github-token', url: "${GIT_REPO_URL}"
             }
         }
         stage("Update Kubernetes Deployment") {
             steps {
                 dir('k8s') {
-                    sh '''
+                    sh """
                         echo "Original deployment.yaml:"
                         cat deployment.yaml
-                        sed -i "s|image: .*$|image: ${IMAGE_REPO}:${IMAGE_TAG}|" deployment.yaml
+                        sed -i "s|image: .*\$|image: ${IMAGE_REPO}:${params.IMAGE_TAG}|" deployment.yaml
                         echo "Updated deployment.yaml:"
                         cat deployment.yaml
-                    '''
+                    """
                 }
             }
         }
@@ -34,10 +36,10 @@ pipeline {
             steps {
                 script {
                     // Set git configuration
-                    sh '''
+                    sh """
                         git config --global user.name "Jenkins CI"
                         git config --global user.email "rayane.matloub2@gmail.com"
-                    '''
+                    """
                     
                     // Check if there are changes to commit
                     def hasChanges = sh(script: 'git status --porcelain | wc -l', returnStdout: true).trim().toInteger() > 0
@@ -45,15 +47,15 @@ pipeline {
                     if (hasChanges) {
                         // Stage and commit changes
                         sh 'git add k8s/deployment.yaml'
-                        sh "git commit -m 'Updated deployment to ${IMAGE_REPO}:${IMAGE_TAG}'"
+                        sh "git commit -m 'Updated deployment to ${IMAGE_REPO}:${params.IMAGE_TAG}'"
                         
                         // Push using credentials
                         withCredentials([usernamePassword(credentialsId: 'github-token', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                             // Use HTTP basic auth with credentials in the URL
-                            sh '''
-                                git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/wnteed/gitops-registration-app.git
+                            sh """
+                                git remote set-url origin https://\${GIT_USERNAME}:\${GIT_PASSWORD}@github.com/wnteed/gitops-registration-app.git
                                 git push origin main
-                            '''
+                            """
                         }
                         echo "Successfully pushed changes to GitOps repository"
                     } else {
