@@ -6,7 +6,6 @@ pipeline {
     environment {
         APP_NAME = "register-app-pipeline"
         IMAGE_REPO = "wanted14/${APP_NAME}"
-        GIT_REPO_URL = "git@github.com:wnteed/gitops-registration-app.git"  // Use SSH URL
     }
     stages {
         stage("Cleanup Workspace") {
@@ -16,54 +15,36 @@ pipeline {
         }
         stage("Checkout Repository") {
             steps {
-                git branch: 'main', credentialsId: 'github-token', url: "${GIT_REPO_URL}"
+                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/wnteed/gitops-registration-app'
             }
         }
-        stage("Update Kubernetes Deployment") {
+        stage("Update the Deployment Tags") {
             steps {
-                dir('k8s') {
-                    sh """
-                        echo "Original deployment.yaml:"
-                        cat deployment.yaml
-                        sed -i "s|image: .*\$|image: ${IMAGE_REPO}:${params.IMAGE_TAG}|" deployment.yaml
-                        echo "Updated deployment.yaml:"
-                        cat deployment.yaml
-                    """
-                }
+                sh """
+                    cat deployment.yaml
+                    sed -i 's/${APP_NAME}.*/${APP_NAME}:${params.IMAGE_TAG}/g' deployment.yaml
+                    cat deployment.yaml
+                """
             }
         }
-        stage("Push Changes to Git") {
+        stage("Push the changed deployment file to Git") {
             steps {
-                script {
-                    // Set git configuration
-                    sh """
-                        git config --global user.name "Jenkins CI"
-                        git config --global user.email "rayane.matloub2@gmail.com"
-                    """
-                    
-                    // Check if there are changes to commit
-                    def hasChanges = sh(script: 'git status --porcelain | wc -l', returnStdout: true).trim().toInteger() > 0
-                    
-                    if (hasChanges) {
-                        // Stage and commit changes
-                        sh 'git add k8s/deployment.yaml'
-                        sh "git commit -m 'Updated deployment to ${IMAGE_REPO}:${params.IMAGE_TAG}'"
-                        
-                        // Push using SSH authentication
-                        sshagent(['github-token']) {
-                            sh "git push origin main"
-                        }
-                        echo "Successfully pushed changes to GitOps repository"
-                    } else {
-                        echo "No changes detected in deployment.yaml"
-                    }
+                sh """
+                    git config --global user.name "Jenkins CI"
+                    git config --global user.email "rayane.matloub2@gmail.com"
+                    git add deployment.yaml
+                    git commit -m "Updated Deployment Manifest"
+                """
+                
+                withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
+                    sh "git push https://github.com/wnteed/gitops-registration-app main"
                 }
             }
         }
         stage("Apply Deployment to Kubernetes") {
             steps {
                 withKubeConfig(credentialsId: 'kubeconfig') {
-                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh 'kubectl apply -f deployment.yaml'
                 }
             }
         }
