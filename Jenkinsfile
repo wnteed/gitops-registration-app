@@ -19,7 +19,7 @@ pipeline {
 
         stage("Checkout Repository") {
             steps {
-                git branch: 'main', credentialsId: 'github-token', url: 'https://github.com/wnteed/gitops-registration-app'
+                git branch: 'main', credentialsId: 'github', url: 'https://github.com/wnteed/gitops-registration-app'
             }
         }
 
@@ -39,10 +39,9 @@ pipeline {
                     git config --global user.name "Jenkins CI"
                     git config --global user.email "rayane.matloub2@gmail.com"
                     git add k8s/deployment.yaml
-                    git commit -m "Updated Deployment Manifest"
+                    git commit -m "Updated Deployment Manifest" || echo "No changes to commit"
                 """
-
-                withCredentials([gitUsernamePassword(credentialsId: 'github-token', gitToolName: 'Default')]) {
+                withCredentials([gitUsernamePassword(credentialsId: 'github', gitToolName: 'Default')]) {
                     sh "git push https://github.com/wnteed/gitops-registration-app main"
                 }
             }
